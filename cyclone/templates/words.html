@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<body>
+    <div>
+        <form action="{{ url_for('api.words') }}" method="post">
+          {{ form.hidden_tag() }}
+          {% for field in form if field.widget.input_type != 'hidden' %}
+            <div>
+              <div>
+                {{ field.label() }}
+              </div>
+              <div>
+                {{ field(class_="form-control") }}
+                {% if field.errors %}
+                <div>
+                  <div>
+                    {% for error in field.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          <div>
+            <div>
+              <button type="submit">
+                <span>Check website</span>
+              </button>
+            </div>
+          </div>
+        </form>
+    </div>
+<div>
+{% for word in words %}
+    <div style="float: left">
+        <p alt="{{word.frequency}}" style="margin: 5px; font-size: {{1 + 0.1 * word.frequency}}em">{{word.word}}</p>
+    </br>
+    </div>
+{% endfor %}
+</div>
+</body>
+</html>
