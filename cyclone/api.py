@@ -1,3 +1,4 @@
+import base64
 from collections import Counter
 from datetime import datetime
 import re
@@ -17,7 +18,7 @@ api = Blueprint('api', __name__)
 @api.route('/admin', methods=['GET'])
 def admin():
     words = Word.query.order_by(db.desc(Word.frequency)).all()
-    return jsonify(words=[{'word': word.hash, 'frequency': word.frequency} for word in words])
+    return jsonify(words=[{'word': base64.b64decode(word.hash), 'frequency': word.frequency} for word in words])
 
 
 class WebpageForm(Form):
@@ -53,7 +54,7 @@ def words():
     words = [
         {
             'frequency': word.frequency,
-            'word': word.hash
+            'word': base64.b64decode(word.hash)
         } for word in get_words(form.website.data)]
     return render_template('words.html', form=form, words=words)
 
@@ -68,22 +69,21 @@ def get_words(url):
     lines = (line.strip() for line in text.splitlines())
     chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
     text = '\n'.join(chunk for chunk in chunks if chunk)
-    text = re.sub(r"[\[\]\(\)=]", "", text)
+    text = re.findall(r"[\w']+", text)
 
     page = Page.query.filter_by(url=url).first()
     if not page:
         page = Page(url=url)
         db.session.add(page)
-    elif page.is_old(datetime.now()):
-        # if newer than a day I don't refetch the page
-        # drop old words as neither id nor name are useful search fields by requirements
-        # even though I could do it as I dropped the hashed word field
-        Word.query.filter_by(page_id=page.id).delete()
-    else:
+    elif not page.is_old(datetime.now()):
         return page.words
-    # create words objects from scratch
-    for word in Counter(text.split()).most_common(100):
-        db.session.add(create_word(word, page))
+    for w in Counter(text).most_common(100):
+        word = Word.query.filter_by(hash=base64.b64encode(w[0])).first()
+        if word and word.frequency != w[1]:
+            word.frequency = w[1]
+        else:
+            word = create_word(w, page)
+        db.session.add(word)
     db_commit()
     return page.words
     #  a) The primary key for the word is a salted hash of the word.
@@ -95,5 +95,5 @@ def create_word(word_tuple, page_obj, cypher=None):
     w = Word(page=page_obj, frequency=word_tuple[1])
     w.id = current_app.bcrypt.generate_password_hash(word_tuple[0])
     # spent WAY too much time in trying to use AES without good results, using plain word name
-    w.hash = word_tuple[0]
+    w.hash = base64.b64encode(word_tuple[0])
     return w
