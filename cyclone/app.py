@@ -1,16 +1,19 @@
-from logging import StreamHandler
-from flask.ext.migrate import Migrate
-from flask.ext.bcrypt import Bcrypt
-from flask import Flask
 import os
+from logging import StreamHandler
+
+from Crypto.PublicKey import RSA
+from Crypto import Random
+from flask.ext.migrate import Migrate
+from flask import Flask
+from sqlalchemy.exc import IntegrityError
 
 from cyclone.db import db
 from cyclone.api import api
 
 
 def init_config(app):
-    DB_USER = os.environ.get('DB_USER', 'shipperizer')
-    DB_PASS = os.environ.get('DB_PASS', 'password')
+    DB_USER = os.environ.get('DB_USER', 'root')
+    DB_PASS = os.environ.get('DB_PASS', '')
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', 3306)
     DB_NAME = os.environ.get('DB_NAME', 'cyclone')
@@ -24,9 +27,8 @@ def init_config(app):
         DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME
     )
     app.secret_key = SECRET_KEY
-    app.config['BCRYPT_LOG_ROUNDS'] = 10
-    app.bcrypt = Bcrypt(app)
     app.logger.addHandler(StreamHandler())
+    app.rsa_key = RSA.generate(4096, Random.new().read)
 
 
 def create_app():
@@ -37,10 +39,8 @@ def create_app():
 
     app.register_blueprint(api)
 
-    # @app.errorhandler(ResourceNotFound)
-    # @app.errorhandler(RequestError)
-    # @app.errorhandler(ResourceExists)
-    # def handle_invalid_usage(error):
-    #     return error.message, error.status_code
+    @app.errorhandler(IntegrityError)
+    def handle_invalid_usage(error):
+        return 'Internal Error', 500
 
     return app

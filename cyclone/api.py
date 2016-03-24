@@ -1,10 +1,11 @@
 import base64
+import hashlib
 from collections import Counter
 from datetime import datetime
 import re
 
 from bs4 import BeautifulSoup
-from flask import Blueprint, request, url_for, jsonify, current_app, render_template
+from flask import Blueprint, request, jsonify, current_app, render_template
 from flask_wtf import Form
 from flask_wtf.html5 import URLField
 import requests
@@ -18,7 +19,9 @@ api = Blueprint('api', __name__)
 @api.route('/admin', methods=['GET'])
 def admin():
     words = Word.query.order_by(db.desc(Word.frequency)).all()
-    return jsonify(words=[{'word': base64.b64decode(word.hash), 'frequency': word.frequency} for word in words])
+    return jsonify(
+        words=[{'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash)), 'frequency': word.frequency}
+               for word in words])
 
 
 class WebpageForm(Form):
@@ -54,7 +57,7 @@ def words():
     words = [
         {
             'frequency': word.frequency,
-            'word': base64.b64decode(word.hash)
+            'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash))
         } for word in get_words(form.website.data)]
     return render_template('words.html', form=form, words=words)
 
@@ -78,7 +81,12 @@ def get_words(url):
     elif not page.is_old(datetime.now()):
         return page.words
     for w in Counter(text).most_common(100):
-        word = Word.query.filter_by(hash=base64.b64encode(w[0])).first()
+        id = hashlib.sha512(current_app.secret_key + w[0]).hexdigest()
+        # avoid autoflush
+        if page.id:
+            word = Word.query.filter_by(page_id=page.id, id=id).first()
+        else:
+            word = None
         if word and word.frequency != w[1]:
             word.frequency = w[1]
         else:
@@ -91,9 +99,8 @@ def get_words(url):
     # c) The total frequency count of the word.
 
 
-def create_word(word_tuple, page_obj, cypher=None):
+def create_word(word_tuple, page_obj):
     w = Word(page=page_obj, frequency=word_tuple[1])
-    w.id = current_app.bcrypt.generate_password_hash(word_tuple[0])
-    # spent WAY too much time in trying to use AES without good results, using plain word name
-    w.hash = base64.b64encode(word_tuple[0])
+    w.id = hashlib.sha512(current_app.secret_key + word_tuple[0]).hexdigest()
+    w.hash = base64.b64encode(current_app.rsa_key.encrypt(word_tuple[0].encode('utf-8'), 64)[0])
     return w

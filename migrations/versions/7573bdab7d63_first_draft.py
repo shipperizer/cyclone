@@ -23,11 +23,11 @@ def upgrade():
     )
     op.create_table('word',
     sa.Column('id', sa.String(length=250), nullable=False),
-    sa.Column('hash', sa.String(length=250), nullable=False),
+    sa.Column('hash', sa.Text(), nullable=False),
     sa.Column('frequency', sa.Integer(), nullable=False),
-    sa.Column('page_id', sa.Integer(), nullable=True),
+    sa.Column('page_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['page_id'], ['page.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id', 'page_id')
     )
     ### end Alembic commands ###
 

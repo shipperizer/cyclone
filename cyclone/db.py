@@ -33,10 +33,8 @@ class Page(db.Model):
 class Word(db.Model):
     __tablename__ = 'word'
 
-    # a) The primary key for the word is a salted hash of the word.
-    # b) The word itself is saved in a column that has asymmetrical encryption, and you are saving the encrypted version of the word.
-    # c) The total frequency count of the word.
     id = db.Column(db.String(250), primary_key=True)
-    hash = db.Column(db.String(250), nullable=False)
+    hash = db.Column(db.Text, nullable=False)
     frequency = db.Column(db.Integer, nullable=False)
-    page_id = db.Column(db.Integer, db.ForeignKey('page.id'))
+    page_id = db.Column(db.Integer, db.ForeignKey('page.id'), primary_key=True)
+    db.PrimaryKeyConstraint('id', 'page_id', name='word_pk')

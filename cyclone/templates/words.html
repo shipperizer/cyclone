@@ -1,44 +1,55 @@
 <!doctype html>
 <html lang="en">
+<head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+</head>
 <body>
-    <div>
-        <form action="{{ url_for('api.words') }}" method="post">
-          {{ form.hidden_tag() }}
-          {% for field in form if field.widget.input_type != 'hidden' %}
-            <div>
-              <div>
-                {{ field.label() }}
-              </div>
-              <div>
-                {{ field(class_="form-control") }}
-                {% if field.errors %}
-                <div>
-                  <div>
-                    {% for error in field.errors %}
-                      {{ error }}
-                    {% endfor %}
-                  </div>
+    <div class="container">
+        <div class="panel-heading clearfix">
+            <div class="row">
+                <form action="{{ url_for('api.words') }}" method="post">
+                  {{ form.hidden_tag() }}
+                  {% for field in form if field.widget.input_type != 'hidden' %}
+                    <div>
+                      <div>
+                        {{ field.label() }}
+                      </div>
+                      <div>
+                        {{ field(class_="form-control") }}
+                        {% if field.errors %}
+                        <div>
+                          <div>
+                            {% for error in field.errors %}
+                              {{ error }}
+                            {% endfor %}
+                          </div>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                    <div class="pull-right">
+                        <div class="btn-group">
+                            <button class="btn btn-success" type="submit">
+                                <span>Check website</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="panel-body clearfix">
+            <div class="row-fluid">
+                {% for word in words %}
+                <div style="float: left">
+                    <p alt="{{word.frequency}}" style="margin: 5px; font-size: {{1 + 0.1 * word.frequency}}em">{{word.word}}</p>
+                        </br>
                 </div>
-                {% endif %}
-              </div>
+                {% endfor %}
             </div>
-          {% endfor %}
-          <div>
-            <div>
-              <button type="submit">
-                <span>Check website</span>
-              </button>
-            </div>
-          </div>
-        </form>
+        </div>
     </div>
-<div>
-{% for word in words %}
-    <div style="float: left">
-        <p alt="{{word.frequency}}" style="margin: 5px; font-size: {{1 + 0.1 * word.frequency}}em">{{word.word}}</p>
-    </br>
-    </div>
-{% endfor %}
-</div>
+<script   src="https://code.jquery.com/jquery-2.2.2.min.js"   integrity="sha256-36cp2Co+/62rEAAYHLmRCPIych47CvdM+uTBJwSzWjI=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 </body>
 </html>

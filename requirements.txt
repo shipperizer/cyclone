@@ -10,4 +10,3 @@ requests==2.9.1
 SQLAlchemy==1.0.12
 tornado==4.3
 flask-wtf==0.12
-flask-bcrypt==0.7.1
