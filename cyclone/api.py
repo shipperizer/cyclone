@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from flask import Blueprint, request, jsonify, current_app, render_template
 from flask_wtf import Form
 from flask_wtf.html5 import URLField
+from sqlalchemy.sql import func
 import requests
 
 from cyclone.db import db, db_commit, Word, Page
@@ -18,9 +19,11 @@ api = Blueprint('api', __name__)
 
 @api.route('/admin', methods=['GET'])
 def admin():
-    words = Word.query.order_by(db.desc(Word.frequency)).all()
+
+    words = db.session.query(
+        Word.hash, func.sum(Word.frequency).label('tot_freq')).group_by(Word.id).order_by(db.desc(Word.frequency)).all()
     return jsonify(
-        words=[{'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash)), 'frequency': word.frequency}
+        words=[{'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash)).encode('ISO-8859-1').strip(), 'frequency': int(word.tot_freq)}
                for word in words])
 
 
@@ -57,7 +60,7 @@ def words():
     words = [
         {
             'frequency': word.frequency,
-            'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash))
+            'word': current_app.rsa_key.decrypt(base64.b64decode(word.hash)).decode('utf-8')
         } for word in get_words(form.website.data)]
     return render_template('words.html', form=form, words=words)
 
@@ -102,5 +105,5 @@ def get_words(url):
 def create_word(word_tuple, page_obj):
     w = Word(page=page_obj, frequency=word_tuple[1])
     w.id = hashlib.sha512(current_app.secret_key + word_tuple[0]).hexdigest()
-    w.hash = base64.b64encode(current_app.rsa_key.encrypt(word_tuple[0].encode('utf-8'), 64)[0])
+    w.hash = base64.b64encode(current_app.rsa_key.encrypt(word_tuple[0].encode('utf-8'), 128)[0])
     return w

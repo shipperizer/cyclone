@@ -28,7 +28,7 @@ def init_config(app):
     )
     app.secret_key = SECRET_KEY
     app.logger.addHandler(StreamHandler())
-    app.rsa_key = RSA.generate(4096, Random.new().read)
+    app.rsa_key = RSA.generate(8192, Random.new().read)
 
 
 def create_app():
